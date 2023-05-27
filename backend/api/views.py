@@ -187,22 +187,22 @@ class RecipeViewSet(mixins.CreateModelMixin,
         if self.request.user.is_authenticated:
 
             is_favorited = self.request.query_params.get(
-                'is_favorited'
+                    'is_favorited'
                 )
 
             if is_favorited is not None and is_favorited == '1':
                 queryset = queryset.filter(
                     favorited__favoriter=self.request.user
-                    )
+                )
 
             is_in_shopping_cart = self.request.query_params.get(
-                'is_in_shopping_cart'
+                    'is_in_shopping_cart'
                 )
 
             if is_in_shopping_cart is not None and is_in_shopping_cart == '1':
                 queryset = queryset.filter(
-                        in_shoping_cart__owner=self.request.user
-                    )
+                    in_shoping_cart__owner=self.request.user
+                )
         return queryset
 
     @action(detail=True,
@@ -238,6 +238,8 @@ class RecipeViewSet(mixins.CreateModelMixin,
                 ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
+        return self.http_method_not_allowed(request)
+
     @action(detail=True,
             methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
@@ -269,6 +271,8 @@ class RecipeViewSet(mixins.CreateModelMixin,
                 recipe_id=recipe.id
                 ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return self.http_method_not_allowed(request)
 
     @action(detail=False,
             methods=['get'],
