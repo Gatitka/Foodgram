@@ -77,7 +77,7 @@ class Recipe(models.Model):
     )
     text = models.TextField(
         help_text='Введите способ приготовления.'
-        )
+    )
     ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngredient',
