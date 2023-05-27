@@ -5,6 +5,7 @@ from django.core.files.base import ContentFile
 from django.db.models import F, QuerySet
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
+from foodgram.settings import DEFAULT_RECIPES_LIMIT
 from recipe.models import (Favorit, Ingredient, Recipe, RecipeIngredient,
                            RecipeTag, ShopingCartUser, Tag)
 from rest_framework import serializers
@@ -12,9 +13,6 @@ from rest_framework.serializers import SerializerMethodField
 from user.models import Subscription
 
 User = get_user_model()
-
-
-DEFAULT_RECIPES_LIMIT = 3
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -41,11 +39,16 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def get_is_subscribed(self, obj) -> bool:
-        """Получает список подписок на авторизованного пользователя.
+        """Проверка подписки пользователей.
+
+        Определяет - подписан ли текущий пользователь
+        на просматриваемого пользователя.
+
         Args:
-            user (User): Запрошенный пользователь.
+            obj (User): Пользователь, на которого проверяется подписка.
+
         Returns:
-            QuerySet[dict]: Список пользователей из подписок пользователя.
+            bool: True, если подписка есть. Во всех остальных случаях False.
         """
         request = self.context['request']
         return Subscription.objects.filter(
@@ -56,11 +59,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 class SignUpSerializer(UserSerializer):
     """
-    Сериализатор для регистрации.
-    Поля email и username обязательны.
+    Сериализатор для регистрации нового пользователя.
+    Все поля обязательны.
     Валидация:
      - Если в БД есть пользователи с переданными email или username,
     вызывается ошибка.
+     - Если имя пользователя - me, вызывается ошибка.
     """
     email = serializers.EmailField(
         max_length=254,
@@ -131,6 +135,30 @@ class UserProfileSerializer(UserSerializer):
         read_only_fields = ('role', 'is_subscribed')
 
 
+class PasswordSerializer(serializers.Serializer):
+    """
+    Сериалайзер для данных, получаемях для смены пароля
+    актуального пользователя.
+    """
+    new_password = serializers.CharField(write_only=True)
+    current_password = serializers.CharField(write_only=True)
+
+    def validate_current_password(self, value):
+        user = self.initial_data['user']
+        if not user.check_password(value):
+            raise serializers.ValidationError(
+                'Введен неверный текущий пароль.'
+            )
+        return value
+
+    def validate_new_password(self, value):
+        if value == self.initial_data['current_password']:
+            raise serializers.ValidationError(
+                'Новый пароль должен отличаться от старого!'
+            )
+        return value
+
+
 class RecipesShortSerializer(serializers.ModelSerializer):
     """
     Сериализатор для краткого отображения данных о подписках.
@@ -144,7 +172,10 @@ class RecipesShortSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionsSerializer(serializers.ModelSerializer):
-    """ Сериализатор для отображения списка подписок."""
+    """
+    Сериализатор для отображения данных о рецептах и их авторов, находящихся
+    в подписках у актуального пользователя.
+    """
     recipes = serializers.SerializerMethodField(read_only=True)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
     recipes_count = serializers.SerializerMethodField(read_only=True)
@@ -213,29 +244,8 @@ class IngredientSerializer(serializers.ModelSerializer):
         model = Ingredient
 
 
-class PasswordSerializer(serializers.Serializer):
-    """ Сериалайзер пароля."""
-    new_password = serializers.CharField(write_only=True)
-    current_password = serializers.CharField(write_only=True)
-
-    def validate_current_password(self, value):
-        user = self.initial_data['user']
-        if not user.check_password(value):
-            raise serializers.ValidationError(
-                'Введен неверный текущий пароль.'
-            )
-        return value
-
-    def validate_new_password(self, value):
-        if value == self.initial_data['current_password']:
-            raise serializers.ValidationError(
-                'Новый пароль должен отличаться от старого!'
-            )
-        return value
-
-
 class RecipeSerializer(serializers.ModelSerializer):
-    """ Сериалайзер произведения для чтения, вкл создание поля рейтинга."""
+    """ Сериалайзер для рецептов."""
     tags = TagSerializer(many=True, read_only=True)
     ingredients = SerializerMethodField()
     author = UserSerializer(read_only=True)
@@ -294,46 +304,11 @@ class RecipeSerializer(serializers.ModelSerializer):
             recipe=recipe.id
         ).exists()
 
-    # def validate_ingredients(self, ingr_list):
-    #     if ingr_list is None:
-    #         raise serializers.ValidationError({
-    #             'Поле ingredients обязательно.'
-    #             })
-    #     if len(ingr_list) == 0:
-    #         raise serializers.ValidationError({
-    #             'Добавьте хотя бы 1 ингредиент.'
-    #             })
-    #     ingr_id_list = []
-    #     for ingredient in ingr_list:
-    #         if "id" not in ingredient.keys():
-    #             raise serializers.ValidationError({
-    #                 f'Отсутствует id ингредиента. {ingredient}'
-    #                 })
-    #         if "amount" not in ingredient.keys():
-    #             raise serializers.ValidationError({
-    #                 f'Отсутствует количество ингредиента {ingredient}.'
-    #                 })
-    #         if ingredient['id'] in ingr_id_list:
-    #             raise serializers.ValidationError({
-    #                 "ingredients": [
-    #                     'Проверьте список ингредиентов на повторение.'
-    #                 ]
-    #                 })
-    #         ingr_id_list.append(ingredient['id'])
-    #     return ingr_list
-
-    # def validate_tags(self, tags_list):
-    #     if tags_list is None:
-    #         raise serializers.ValidationError({
-    #             'Поле tags обязательно.'
-    #             })
-    #     if len(tags_list) == 0:
-    #         raise serializers.ValidationError({
-    #             'Добавьте хотя бы 1 тэг.'
-    #             })
-    #     return tags_list
-
     def to_internal_value(self, data):
+        """
+        Проверка данных, введенных в полях ingredients, tags.
+        Обработка изображения для сохранения в БД.
+        """
         ingredients = data.get('ingredients')
         tags = data.get('tags')
         if ingredients is None:

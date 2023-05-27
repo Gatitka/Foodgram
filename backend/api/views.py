@@ -59,6 +59,7 @@ class MyUserViewSet(mixins.CreateModelMixin,
         """
         Экшен для обработки страницы актуального пользователя
         api/users/me.
+        Только GET, PATCH запросы
         """
         self.get_object = self.get_instance
         if request.method == "GET":
@@ -72,6 +73,7 @@ class MyUserViewSet(mixins.CreateModelMixin,
         """
         Экшен для обработки страницы смены пароля
         api/users/set_password.
+        Только POST запросы.
         """
         user = request.user
         request.data['user'] = user
@@ -89,8 +91,9 @@ class MyUserViewSet(mixins.CreateModelMixin,
             )
     def subscriptions(self, request):
         """
-        Экшен для обработки страницы подписок на авторов
-        api/users/subscriptions.
+        Экшен для получения данных об авторах, находящихся в подписках у
+        актуального пользователя, а так же их подписках.
+        Только GET запросы.
         """
         queryset = User.objects.filter(
             following__user=self.request.user
@@ -130,7 +133,15 @@ class SubscribeViewSet(mixins.CreateModelMixin,
     def create(self, request, user_id=None):
         """
         Метод для создания подписки текущего пользователя на автора,
-        заданного в url запросе.
+        id которого передается в url запросе.
+        Args:
+            request (WSGIRequest): Объект запроса.
+            id (int):
+                id пользователя, на которого желает подписаться
+                или отписаться запрашивающий пользователь.
+
+        Returns:
+            return: Перенаправляет на страницу подписки, при успешной подписке.
         """
         current_user_id = request.user.id
         author = get_object_or_404(User, id=user_id)
@@ -154,6 +165,18 @@ class SubscribeViewSet(mixins.CreateModelMixin,
         )
 
     def delete(self, request, user_id=None):
+        """
+        Метод для удаления подписки текущего пользователя на автора,
+        id которого передается в url запросе.
+        Args:
+            request (WSGIRequest): Объект запроса.
+            id (int):
+                id пользователя, на которого желает отписаться
+                текущий пользователь.
+
+        Returns:
+            Responce: Статус подтверждающий действие.
+        """
         current_user_id = request.user.id
         author = get_object_or_404(User, id=user_id)
         if not Subscription.objects.filter(
@@ -173,13 +196,32 @@ class RecipeViewSet(mixins.CreateModelMixin,
                     mixins.ListModelMixin,
                     mixins.UpdateModelMixin,
                     viewsets.GenericViewSet):
-    """ Вьюсет модели Recipe, сериализатор подбирается по типу запроса."""
+    """
+    Вывод, создание, редактирование, добавление/удаление
+    в избранное и список покупок.
+    Отправка текстового файла со списком покупок.
+    Для авторизованных пользователей — возможность добавить
+    рецепт в избранное и в список покупок.
+    Изменять рецепт может только автор или админы.
+    """
     permission_classes = [IsAuthorAdminOrReadOnly]
     serializer_class = RecipeSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
 
     def get_queryset(self):
+        """
+        Получение Queryset с фильтрацией в зависимости от переданных в url
+        параметров запроса - is_favorited (выборка рецептов из "избранного"),
+        is_in_shopping_cart (выборка рецептов из корзины покупок).
+
+        Args:
+            request (WSGIRequest): Объект запроса.
+
+        Returns:
+            queryset (Recipe): выборка рецептов.
+
+        """
         queryset = Recipe.objects.select_related(
             'author'
         ).all(
@@ -211,7 +253,16 @@ class RecipeViewSet(mixins.CreateModelMixin,
     @action(detail=True,
             methods=['post', 'delete'])
     def favorite(self, request, pk=None):
+        """Добавляет/удалет рецепт в `избранное`.
 
+        Args:
+            request (WSGIRequest): Объект запроса.
+            pk (int):
+                id рецепта, который нужно добавить/удалить из `избранного`.
+
+        Returns:
+            Responce: Статус подтверждающий/отклоняющий действие.
+        """
         current_user_id = request.user.id
         recipe = get_object_or_404(Recipe, id=pk)
 
@@ -246,7 +297,17 @@ class RecipeViewSet(mixins.CreateModelMixin,
     @action(detail=True,
             methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
+        """
+        Добавляет/удалет рецепт в `список покупок`.
 
+        Args:
+            request (WSGIRequest): Объект запроса.
+            pk (int):
+                id рецепта, который нужно добавить/удалить в `корзину покупок`.
+
+        Returns:
+            Responce: Статус подтверждающий/отклоняющий действие.
+        """
         current_user_id = request.user.id
         recipe = get_object_or_404(Recipe, id=pk)
 
@@ -330,13 +391,21 @@ class RecipeViewSet(mixins.CreateModelMixin,
         return response
 
     def update(self, request, *args, **kwargs):
+        """
+        Ограничение для метода PUT. Редакция существующих рецептов только
+        через PATCH метод.
+        """
+
         if request.method == "PUT":
             return self.http_method_not_allowed(request, *args, **kwargs)
         return super().update(request, *args, **kwargs)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    """ Вьюсет модели Tag."""
+    """
+    Работает с тэгами.
+    Изменение и создание тэгов разрешено только админам.
+    """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = [IsAdminOrReadOnly]
@@ -344,7 +413,10 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    """ Вьюсет модели Ingredient."""
+    """
+    Работет с игридиентами.
+    Изменение и создание ингридиентов разрешено только админам.
+    """
     serializer_class = IngredientSerializer
     pagination_class = None
 

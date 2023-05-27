@@ -32,8 +32,6 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -100,8 +98,6 @@ DATABASES = {
    }
 }
 
-
-
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
 
@@ -165,3 +161,9 @@ DJOSER = {
     'LOGOUT_ON_PASSWORD_CHANGE': True,
     'LOGIN_FIELD': 'email',
 }
+
+PASSWORD_RESET_TIMEOUT = 60 * 60  # 1 hour
+
+DEFAULT_RECIPES_LIMIT = 3
+
+DEFAULT_PAGE_SIZE = 6
