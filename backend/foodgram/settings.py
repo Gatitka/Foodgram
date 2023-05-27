@@ -88,14 +88,14 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 load_dotenv(os.path.join(os.path.dirname(BASE_DIR), 'infra/.env'), verbose=True)
 
 DATABASES = {
-   'default': {
-       'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3'),
-       'NAME': os.environ.get('POSTGRES_DB', os.path.join(BASE_DIR, 'db.sqlite3')),
-       'USER': os.environ.get('POSTGRES_USER'),
-       'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-       'HOST': os.environ.get('DB_HOST'),
-       'PORT': os.environ.get('DB_PORT'),
-   }
+    'default': {
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.environ.get('POSTGRES_DB', os.path.join(BASE_DIR, 'db.sqlite3')),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
+    }
 }
 
 # Password validation
