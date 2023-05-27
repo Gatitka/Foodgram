@@ -93,22 +93,22 @@ class MyUserViewSet(mixins.CreateModelMixin,
         api/users/subscriptions.
         """
         queryset = User.objects.filter(
-                   following__user=self.request.user
-                   ).annotate(recipes_count=Count('recipes'))
+            following__user=self.request.user
+        ).annotate(recipes_count=Count('recipes'))
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = SubscriptionsSerializer(page, many=True)
             serializer.context['current_user'] = request.user
             serializer.context[
-                               'recipes_limit'
-                              ] = request.query_params.get('recipes_limit')
+                'recipes_limit'
+            ] = request.query_params.get('recipes_limit')
             return self.get_paginated_response(serializer.data)
 
         serializer = SubscriptionsSerializer(queryset, many=True)
         serializer.context['current_user'] = request.user
         serializer.context[
-                           'recipes_limit'
-                           ] = request.query_params.get('recipes_limit')
+            'recipes_limit'
+        ] = request.query_params.get('recipes_limit')
         return Response(serializer.data)
 
 
@@ -147,16 +147,19 @@ class SubscribeViewSet(mixins.CreateModelMixin,
         Subscription.objects.create(
             user_id=current_user_id,
             author_id=user_id)
-        return redirect('api:subscribe-detail',
-                        user_id=current_user_id,
-                        pk=user_id)
+        return redirect(
+            'api:subscribe-detail',
+            user_id=current_user_id,
+            pk=user_id
+        )
 
     def delete(self, request, user_id=None):
         current_user_id = request.user.id
         author = get_object_or_404(User, id=user_id)
-        if not Subscription.objects.filter(user_id=current_user_id,
-                                           author_id=author.id
-                                           ).exists():
+        if not Subscription.objects.filter(
+            user_id=current_user_id,
+            author_id=author.id
+        ).exists():
             return Response('Подписки на данного автора не существует.',
                             status=status.HTTP_400_BAD_REQUEST)
         Subscription.objects.filter(user_id=current_user_id,
@@ -178,17 +181,17 @@ class RecipeViewSet(mixins.CreateModelMixin,
 
     def get_queryset(self):
         queryset = Recipe.objects.select_related(
-                                    'author'
-                                ).all(
-                                ).prefetch_related(
-                                    'tags', 'ingredients'
-                                )
+            'author'
+        ).all(
+        ).prefetch_related(
+            'tags', 'ingredients'
+        )
 
         if self.request.user.is_authenticated:
 
             is_favorited = self.request.query_params.get(
-                    'is_favorited'
-                )
+                'is_favorited'
+            )
 
             if is_favorited is not None and is_favorited == '1':
                 queryset = queryset.filter(
@@ -196,8 +199,8 @@ class RecipeViewSet(mixins.CreateModelMixin,
                 )
 
             is_in_shopping_cart = self.request.query_params.get(
-                    'is_in_shopping_cart'
-                )
+                'is_in_shopping_cart'
+            )
 
             if is_in_shopping_cart is not None and is_in_shopping_cart == '1':
                 queryset = queryset.filter(
@@ -222,7 +225,7 @@ class RecipeViewSet(mixins.CreateModelMixin,
             Favorit.objects.create(
                 favoriter_id=current_user_id,
                 recipe_id=recipe.id
-                )
+            )
             return Response(RecipesShortSerializer(recipe).data)
 
         if request.method == 'DELETE':
@@ -235,7 +238,7 @@ class RecipeViewSet(mixins.CreateModelMixin,
             Favorit.objects.filter(
                 favoriter_id=current_user_id,
                 recipe_id=recipe.id
-                ).delete()
+            ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return self.http_method_not_allowed(request)
@@ -269,7 +272,7 @@ class RecipeViewSet(mixins.CreateModelMixin,
             ShopingCartUser.objects.filter(
                 owner_id=current_user_id,
                 recipe_id=recipe.id
-                ).delete()
+            ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return self.http_method_not_allowed(request)
@@ -294,11 +297,11 @@ class RecipeViewSet(mixins.CreateModelMixin,
         user = self.request.user
         if not ShopingCartUser.objects.filter(
                 owner=user
-                ).exists():
+        ).exists():
             return Response(
                 'Корзина покупок пользователя пуста.',
                 status=status.HTTP_400_BAD_REQUEST
-                )
+            )
 
         filename = f'{user.username}_shopping_list.txt'
         shopping_list = [

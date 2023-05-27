@@ -49,9 +49,9 @@ class UserSerializer(serializers.ModelSerializer):
         """
         request = self.context['request']
         return Subscription.objects.filter(
-                                        user=request.user.id,
-                                        author=obj.id
-                                        ).exists()
+            user=request.user.id,
+            author=obj.id
+        ).exists()
 
 
 class SignUpSerializer(UserSerializer):
@@ -65,18 +65,18 @@ class SignUpSerializer(UserSerializer):
     email = serializers.EmailField(
         max_length=254,
         required=True
-        )
+    )
     username = serializers.RegexField(
         regex=r'^[\w.@+-]+$',
         max_length=150,
         min_length=8
-        )
+    )
     password = serializers.CharField(
         write_only=True,
         required=True,
         max_length=150,
         min_length=8
-        )
+    )
 
     class Meta:
         fields = ('id', 'username', 'email', 'first_name',
@@ -173,7 +173,7 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
         serializer = RecipesShortSerializer(
             obj.recipes.all()[:recipes_limit],
             many=True
-            )
+        )
         return serializer.data
 
     def get_is_subscribed(self, obj) -> bool:
@@ -185,9 +185,9 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
         """
         current_user = self.context['current_user']
         return Subscription.objects.filter(
-                                       user=current_user.id,
-                                       author=obj.id
-                                       ).exists()
+            user=current_user.id,
+            author=obj.id
+        ).exists()
 
     def get_recipes_count(self, obj) -> int:
         """Получает количество рецептов всех подписанных авторов.
@@ -223,14 +223,14 @@ class PasswordSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError(
                 'Введен неверный текущий пароль.'
-                )
+            )
         return value
 
     def validate_new_password(self, value):
         if value == self.initial_data['current_password']:
             raise serializers.ValidationError(
                 'Новый пароль должен отличаться от старого!'
-                )
+            )
         return value
 
 
@@ -276,9 +276,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         """
         request = self.context['request']
         return Favorit.objects.filter(
-                                       favoriter=request.user.id,
-                                       recipe=recipe.id
-                                       ).exists()
+            favoriter=request.user.id,
+            recipe=recipe.id
+        ).exists()
 
     def get_is_in_shopping_cart(self, recipe: Recipe) -> bool:
         """Получает булевое значение, если авторизованный пользователь имеет
@@ -290,9 +290,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         """
         request = self.context['request']
         return ShopingCartUser.objects.filter(
-                                       owner=request.user.id,
-                                       recipe=recipe.id
-                                       ).exists()
+            owner=request.user.id,
+            recipe=recipe.id
+        ).exists()
 
     # def validate_ingredients(self, ingr_list):
     #     if ingr_list is None:
@@ -339,39 +339,39 @@ class RecipeSerializer(serializers.ModelSerializer):
         if ingredients is None:
             raise serializers.ValidationError({
                 'ingredients': 'Поле ingredients обязательно.'
-                })
+            })
         if len(ingredients) == 0:
             raise serializers.ValidationError({
                 'ingredients': 'Добавьте хотя бы 1 ингредиент.'
-                })
+            })
         ingr_id_list = []
         for ingredient in ingredients:
             if "id" not in ingredient.keys():
                 raise serializers.ValidationError({
                     'ingredients':
                         f'Отсутствует id ингредиента. {ingredient}'
-                    })
+                })
             if "amount" not in ingredient.keys():
                 raise serializers.ValidationError({
                     'ingredients':
                         f'Отсутствует количество ингредиента {ingredient}.'
-                    })
+                })
             if ingredient['id'] in ingr_id_list:
                 raise serializers.ValidationError({
                     "ingredients": [
                         'Проверьте список ингредиентов на повторение.'
                     ]
-                    })
+                })
             ingr_id_list.append(ingredient['id'])
 
         if tags is None:
             raise serializers.ValidationError({
                 'tags': 'Поле tags обязательно.'
-                })
+            })
         if len(tags) == 0:
             raise serializers.ValidationError({
                 'tags': 'Добавьте хотя бы 1 тэг.'
-                })
+            })
 
         image = data.get('image')
         if isinstance(image, str) and image.startswith('data:image'):
@@ -418,9 +418,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             lst_ingrd = [
                 RecipeIngredient(
                     ingredient=get_object_or_404(
-                                                   Ingredient,
-                                                   id=ingredient['id']
-                                                   ),
+                        Ingredient,
+                        id=ingredient['id']
+                    ),
                     amount=ingredient['amount'],
                     recipe=instance,
                 )
@@ -432,10 +432,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             tags_data = validated_data.pop('tags')
             lst_tag = []
             for tag in tags_data:
-                current_tag = get_object_or_404(
-                                                Tag,
-                                                id=tag
-                                                )
+                current_tag = get_object_or_404(Tag, id=tag)
                 lst_tag.append(current_tag)
             instance.tags.set(lst_tag)
 
