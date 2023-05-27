@@ -1,4 +1,7 @@
+import base64
+
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from django.db.models import F, QuerySet
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
@@ -7,9 +10,6 @@ from recipe.models import (Favorit, Ingredient, Recipe, RecipeIngredient,
 from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
 from user.models import Subscription
-
-import base64  # Модуль с функциями кодирования и декодирования base64
-from django.core.files.base import ContentFile
 
 User = get_user_model()
 
@@ -259,13 +259,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         Returns:
             QuerySet[dict]: Список ингридиентов в рецепте.
         """
-        ingredients = recipe.ingredients.values(
+        return recipe.ingredients.values(
             'id',
             'name',
             'measurement_unit',
             amount=F('recipe__amount')
         )
-        return ingredients
 
     def get_is_favorited(self, recipe: Recipe) -> bool:
         """Получает булевое значение, если авторизованный пользователь имеет
@@ -333,8 +332,6 @@ class RecipeSerializer(serializers.ModelSerializer):
     #             'Добавьте хотя бы 1 тэг.'
     #             })
     #     return tags_list
-
-
 
     def to_internal_value(self, data):
         ingredients = data.get('ingredients')

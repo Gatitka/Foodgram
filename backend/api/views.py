@@ -80,9 +80,8 @@ class MyUserViewSet(mixins.CreateModelMixin,
             user.set_password(request.data['new_password'])
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors,
+                        status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False,
             methods=['get'],
@@ -116,15 +115,17 @@ class MyUserViewSet(mixins.CreateModelMixin,
 class SubscribeViewSet(mixins.CreateModelMixin,
                        mixins.DestroyModelMixin,
                        viewsets.GenericViewSet):
-    """ Вьюсет модели User и работе с подписками."""
+    """ Вьюсет модели User и работе с подписками. Создает или удаляет
+    подписку актуального пользователя на автора, id которого преедается в
+    url запросе.
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = SubscriptionsSerializer
 
     def get_queryset(self,):
-        queryset = User.objects.filter(
+        return User.objects.filter(
             following__user=self.request.user
         ).annotate(recipes_count=Count('recipes'))
-        return queryset
 
     def create(self, request, user_id=None):
         """
@@ -342,8 +343,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         name_search = self.request.query_params.get('name')
+        queryset = Ingredient.objects.all()
         if name_search is not None:
-            queryset = Ingredient.objects.filter(name__startswith=name_search)
-        else:
-            queryset = Ingredient.objects.all()
+            queryset = queryset.filter(name__startswith=name_search)
         return queryset
