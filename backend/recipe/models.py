@@ -179,18 +179,18 @@ class Favorit(models.Model):
         return f'{self.favoriter} -> {self.recipe}'
 
 
-class ShopingCartUser(models.Model):
+class ShoppingCartUser(models.Model):
     """ Модель для добавления рецептов в корзину покупок."""
     owner = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         verbose_name='Владелец',
-        related_name='shoping_cart_owner',
+        related_name='shopping_cart_owner',
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='in_shoping_cart',
+        related_name='in_shopping_cart',
         verbose_name='Рецепты'
     )
 

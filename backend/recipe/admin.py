@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import (Favorit, Ingredient, Recipe, RecipeIngredient, RecipeTag,
-                     ShopingCartUser, Tag)
+                     ShoppingCartUser, Tag)
 
 
 class RecipeIngredientAdmin(admin.TabularInline):
@@ -13,7 +13,7 @@ class RecipeTagAdmin(admin.TabularInline):
 
 
 admin.site.register(Tag)
-admin.site.register(ShopingCartUser)
+admin.site.register(ShoppingCartUser)
 
 
 @admin.register(Favorit)

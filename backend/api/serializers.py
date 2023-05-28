@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from foodgram.settings import DEFAULT_RECIPES_LIMIT
 from recipe.models import (Favorit, Ingredient, Recipe, RecipeIngredient,
-                           RecipeTag, ShopingCartUser, Tag)
+                           RecipeTag, ShoppingCartUser, Tag)
 from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
 from user.models import Subscription
@@ -299,7 +299,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             bool: в корзине покупок или нет.
         """
         request = self.context['request']
-        return ShopingCartUser.objects.filter(
+        return ShoppingCartUser.objects.filter(
             owner=request.user.id,
             recipe=recipe.id
         ).exists()

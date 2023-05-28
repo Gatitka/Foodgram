@@ -5,7 +5,7 @@ from django.db.models import Count, F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
-from recipe.models import Favorit, Ingredient, Recipe, ShopingCartUser, Tag
+from recipe.models import Favorit, Ingredient, Recipe, ShoppingCartUser, Tag
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -197,58 +197,27 @@ class RecipeViewSet(mixins.CreateModelMixin,
                     mixins.UpdateModelMixin,
                     viewsets.GenericViewSet):
     """
-    Вывод, создание, редактирование, добавление/удаление
-    в избранное и список покупок.
-    Отправка текстового файла со списком покупок.
-    Для авторизованных пользователей — возможность добавить
-    рецепт в избранное и в список покупок.
+    Вьюсет для работы с моделью Recipe.
+    Просмотр, создание, редактирование рецепта.
     Изменять рецепт может только автор или админы.
+
+    Для авторизованных пользователей — возможность добавить/удалить
+    рецепт в избранное и в список покупок
+    + скачать список покупок текстовым файлом.
+
+    Queryset фильтруется кастомным фильтром RecipeFilter по параметрам запроса
+    и выдает список всех рецептов/избранных/нахоядщихся в корзине.
     """
     permission_classes = [IsAuthorAdminOrReadOnly]
     serializer_class = RecipeSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
-
-    def get_queryset(self):
-        """
-        Получение Queryset с фильтрацией в зависимости от переданных в url
-        параметров запроса - is_favorited (выборка рецептов из "избранного"),
-        is_in_shopping_cart (выборка рецептов из корзины покупок).
-
-        Args:
-            request (WSGIRequest): Объект запроса.
-
-        Returns:
-            queryset (Recipe): выборка рецептов.
-
-        """
-        queryset = Recipe.objects.select_related(
+    queryset = Recipe.objects.select_related(
             'author'
         ).all(
         ).prefetch_related(
             'tags', 'ingredients'
         )
-
-        if self.request.user.is_authenticated:
-
-            is_favorited = self.request.query_params.get(
-                'is_favorited'
-            )
-
-            if is_favorited is not None and is_favorited == '1':
-                queryset = queryset.filter(
-                    favorited__favoriter=self.request.user
-                )
-
-            is_in_shopping_cart = self.request.query_params.get(
-                'is_in_shopping_cart'
-            )
-
-            if is_in_shopping_cart is not None and is_in_shopping_cart == '1':
-                queryset = queryset.filter(
-                    in_shoping_cart__owner=self.request.user
-                )
-        return queryset
 
     @action(detail=True,
             methods=['post', 'delete'])
@@ -312,25 +281,25 @@ class RecipeViewSet(mixins.CreateModelMixin,
         recipe = get_object_or_404(Recipe, id=pk)
 
         if request.method == 'POST':
-            if ShopingCartUser.objects.filter(
+            if ShoppingCartUser.objects.filter(
                 owner_id=current_user_id,
                 recipe_id=recipe.id
             ).exists():
                 return Response('Рецепт уже в корзине.',
                                 status=status.HTTP_400_BAD_REQUEST)
-            ShopingCartUser.objects.create(
+            ShoppingCartUser.objects.create(
                 owner_id=current_user_id,
                 recipe_id=recipe.id)
             return Response(RecipesShortSerializer(recipe).data)
 
         if request.method == 'DELETE':
-            if not ShopingCartUser.objects.filter(
+            if not ShoppingCartUser.objects.filter(
                 owner_id=current_user_id,
                 recipe_id=recipe.id
             ).exists():
                 return Response('Данного рецепта нет в корзине.',
                                 status=status.HTTP_400_BAD_REQUEST)
-            ShopingCartUser.objects.filter(
+            ShoppingCartUser.objects.filter(
                 owner_id=current_user_id,
                 recipe_id=recipe.id
             ).delete()
@@ -356,7 +325,7 @@ class RecipeViewSet(mixins.CreateModelMixin,
             Responce: Ответ с текстовым файлом.
         """
         user = self.request.user
-        if not ShopingCartUser.objects.filter(
+        if not ShoppingCartUser.objects.filter(
                 owner=user
         ).exists():
             return Response(
@@ -371,7 +340,7 @@ class RecipeViewSet(mixins.CreateModelMixin,
         ]
 
         ingredients = Ingredient.objects.filter(
-            recipe__recipe__in_shoping_cart__owner=user
+            recipe__recipe__in_shopping_cart__owner=user
         ).values(
             'name',
             measurement=F('measurement_unit')
