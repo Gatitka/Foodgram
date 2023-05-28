@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from recipe.models import Favorit, Ingredient, Recipe, ShoppingCartUser, Tag
-from rest_framework import mixins, status, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -213,11 +213,11 @@ class RecipeViewSet(mixins.CreateModelMixin,
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     queryset = Recipe.objects.select_related(
-            'author'
-        ).all(
-        ).prefetch_related(
-            'tags', 'ingredients'
-        )
+        'author'
+    ).all(
+    ).prefetch_related(
+        'tags', 'ingredients'
+    )
 
     @action(detail=True,
             methods=['post', 'delete'])
@@ -386,12 +386,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     Работет с игридиентами.
     Изменение и создание ингридиентов разрешено только админам.
     """
+    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
-
-    def get_queryset(self):
-        name_search = self.request.query_params.get('name')
-        queryset = Ingredient.objects.all()
-        if name_search is not None:
-            queryset = queryset.filter(name__startswith=name_search)
-        return queryset
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('^name',)
