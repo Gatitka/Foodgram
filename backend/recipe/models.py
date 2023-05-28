@@ -27,7 +27,12 @@ class Tag(models.Model):
         verbose_name = 'тэг'
         verbose_name_plural = 'тэги'
         ordering = ('name',)
-        unique_together = ('name', 'color', 'slug')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'color', 'slug'],
+                name='unique_name_color_slug'
+            )
+        ]
 
     def __str__(self):
         return self.slug
@@ -38,8 +43,7 @@ class Ingredient(models.Model):
     name = models.CharField(
         max_length=200,
         db_index=True,
-        verbose_name='Название',
-        unique=True
+        verbose_name='Название'
     )
     measurement_unit = models.CharField(
         max_length=24,
@@ -51,7 +55,6 @@ class Ingredient(models.Model):
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ('id', )
-        unique_together = ('name', 'measurement_unit')
 
     def __str__(self):
         return self.name
@@ -84,7 +87,8 @@ class Recipe(models.Model):
         through='RecipeIngredient',
         verbose_name='Ингредиенты',
         related_name='ingredient',
-        help_text='Добавьте ингредиенты рецепта.'
+        help_text='Добавьте ингредиенты рецепта.',
+        blank=False
     )
     tags = models.ManyToManyField(
         Tag,
@@ -131,7 +135,12 @@ class RecipeIngredient(models.Model):
         ordering = ['recipe']
         verbose_name = 'рецепт-ингредиенты'
         verbose_name_plural = 'рецепты-ингредиенты'
-        unique_together = ('recipe', 'ingredient')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'ingredient'],
+                name='unique_recipe_ingredient'
+            )
+        ]
 
 
 class RecipeTag(models.Model):
@@ -151,7 +160,12 @@ class RecipeTag(models.Model):
         ordering = ['recipe']
         verbose_name = 'рецепт-тэг'
         verbose_name_plural = 'рецепты-тэги'
-        unique_together = ('recipe', 'tag')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['recipe', 'tag'],
+                name='unique_recipe_tag'
+            )
+        ]
 
 
 class Favorit(models.Model):
@@ -174,7 +188,12 @@ class Favorit(models.Model):
         ordering = ['favoriter']
         verbose_name = 'избранное'
         verbose_name_plural = 'избранное'
-        unique_together = ('favoriter', 'recipe')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['favoriter', 'recipe'],
+                name='unique_favoriter_recipe'
+            )
+        ]
 
     def __str__(self):
         return f'{self.favoriter} -> {self.recipe}'
@@ -199,7 +218,12 @@ class ShoppingCartUser(models.Model):
         ordering = ['recipe']
         verbose_name = 'корзина покупок'
         verbose_name_plural = 'корзины покупок'
-        unique_together = ('owner', 'recipe')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['owner', 'recipe'],
+                name='unique_owner_recipe'
+            )
+        ]
 
     def __str__(self):
         return f'{self.owner} -> {self.recipe}'
