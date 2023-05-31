@@ -11,6 +11,7 @@ from recipe.models import (Favorit, Ingredient, Recipe, RecipeIngredient,
 from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
 from user.models import Subscription
+from rest_framework.validators import UniqueTogetherValidator
 
 User = get_user_model()
 
@@ -124,17 +125,6 @@ class SignUpSerializer(UserSerializer):
         return user
 
 
-class UserProfileSerializer(UserSerializer):
-    """
-    Сериализатор для получения и изменения данных
-    собственной учётной записи.
-    Пользователь может узнать свою роль в системе, но не может её изменять.
-    """
-
-    class Meta(UserSerializer.Meta):
-        read_only_fields = ('role', 'is_subscribed')
-
-
 class PasswordSerializer(serializers.Serializer):
     """
     Сериалайзер для данных, получаемях для смены пароля
@@ -171,7 +161,7 @@ class RecipesShortSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'image', 'cooking_time', 'name')
 
 
-class SubscriptionsSerializer(serializers.ModelSerializer):
+class SubscriptionsSerializer(UserSerializer):
     """
     Сериализатор для отображения данных о рецептах и их авторов, находящихся
     в подписках у актуального пользователя.
@@ -206,19 +196,6 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
             many=True
         )
         return serializer.data
-
-    def get_is_subscribed(self, obj) -> bool:
-        """Получает список подписок на авторизованного пользователя.
-        Args:
-            user (User): Автор на которого подписан пользователь.
-        Returns:
-            bool: есть подписка или нет.
-        """
-        current_user = self.context['current_user']
-        return Subscription.objects.filter(
-            user=current_user.id,
-            author=obj.id
-        ).exists()
 
     def get_recipes_count(self, obj) -> int:
         """Получает количество рецептов всех подписанных авторов.
@@ -304,7 +281,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             recipe=recipe.id
         ).exists()
 
-    def to_internal_value(self, data):
+    def validate(self, data):
         """
         Проверка данных, введенных в полях ingredients, tags.
         Обработка изображения для сохранения в БД.

@@ -1,9 +1,10 @@
-from django_filters import FilterSet, NumberFilter, filters
+from django_filters import FilterSet, NumberFilter
+from django_filters import filters as df_f
+from recipe.models import Ingredient, Recipe
+from rest_framework import filters as rf_f
 
-from recipe.models import Recipe
 
-
-class CharFilter(filters.BaseInFilter, filters.CharFilter):
+class CharFilter(df_f.BaseInFilter, df_f.CharFilter):
     pass
 
 
@@ -41,3 +42,17 @@ class RecipeFilter(FilterSet):
     class Meta:
         model = Recipe
         fields = ['author', 'tags', 'favorited', 'in_shopping_cart']
+
+
+class IngredientFilter(rf_f.SearchFilter):
+    """ Фильтр ингредиентов. """
+    search_param = 'name'
+
+    def filter_queryset(self, request, queryset, view):
+        search_value = request.query_params.get(self.search_param, '')
+        if search_value:
+            queryset = queryset.filter(Q(name__startswith=search_value))
+        return queryset
+    # class Meta:
+    #     model = Ingredient
+    #     fields = ['name']

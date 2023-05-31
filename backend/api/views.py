@@ -1,9 +1,8 @@
-from datetime import datetime as dt
-
 from django.contrib.auth import get_user_model
 from django.db.models import Count, F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from recipe.models import Favorit, Ingredient, Recipe, ShoppingCartUser, Tag
 from rest_framework import filters, mixins, status, viewsets
@@ -12,17 +11,37 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from user.models import Subscription
 
-from .filters import RecipeFilter
-from .permissions import IsAdminOrReadOnly, IsAuthorAdminOrReadOnly
+from .filters import RecipeFilter, IngredientFilter
+from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (IngredientSerializer, PasswordSerializer,
                           RecipeSerializer, RecipesShortSerializer,
                           SignUpSerializer, SubscriptionsSerializer,
-                          TagSerializer, UserProfileSerializer)
+                          TagSerializer, UserSerializer)
+
 
 User = get_user_model()
 
 
 DATE_TIME_FORMAT = '%d/%m/%Y %H:%M'
+
+
+def check_existance_create_delete(model, method, response,
+                                  serializer=None, instance=None,
+                                  **kwargs):
+    if method == 'POST':
+        if model.objects.filter(**kwargs).exists():
+            return Response('Данная запись уже существует.',
+                            status=status.HTTP_400_BAD_REQUEST)
+        model.objects.create(**kwargs)
+        if response == 'response':
+            return Response(serializer(instance).data)
+        return 'redirect'
+
+    if not model.objects.filter(**kwargs).exists():
+        return Response('Такой записи нет, удаление невозможно.',
+                        status=status.HTTP_400_BAD_REQUEST)
+    model.objects.filter(**kwargs).delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MyUserViewSet(mixins.CreateModelMixin,
@@ -37,7 +56,7 @@ class MyUserViewSet(mixins.CreateModelMixin,
 
     """
     queryset = User.objects.all()
-    serializer_class = UserProfileSerializer
+    serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
     def get_instance(self):
@@ -51,7 +70,7 @@ class MyUserViewSet(mixins.CreateModelMixin,
     @action(
         detail=False,
         methods=['get'],
-        serializer_class=UserProfileSerializer,
+        serializer_class=UserSerializer,
         permission_classes=[IsAuthenticated],
         url_path='me'
     )
@@ -78,12 +97,10 @@ class MyUserViewSet(mixins.CreateModelMixin,
         user = request.user
         request.data['user'] = user
         serializer = PasswordSerializer(data=request.data)
-        if serializer.is_valid():
-            user.set_password(request.data['new_password'])
-            user.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(serializer.errors,
-                        status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user.set_password(request.data['new_password'])
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False,
             methods=['get'],
@@ -101,93 +118,50 @@ class MyUserViewSet(mixins.CreateModelMixin,
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = SubscriptionsSerializer(page, many=True)
-            serializer.context['current_user'] = request.user
+            serializer.context['request'] = request
             serializer.context[
                 'recipes_limit'
             ] = request.query_params.get('recipes_limit')
             return self.get_paginated_response(serializer.data)
 
         serializer = SubscriptionsSerializer(queryset, many=True)
-        serializer.context['current_user'] = request.user
+        serializer.context['request'] = request
         serializer.context[
             'recipes_limit'
         ] = request.query_params.get('recipes_limit')
         return Response(serializer.data)
 
-
-class SubscribeViewSet(mixins.CreateModelMixin,
-                       mixins.DestroyModelMixin,
-                       viewsets.GenericViewSet):
-    """ Вьюсет модели User и работе с подписками. Создает или удаляет
-    подписку актуального пользователя на автора, id которого преедается в
-    url запросе.
-    """
-    permission_classes = [IsAuthenticated]
-    serializer_class = SubscriptionsSerializer
-
-    def get_queryset(self,):
-        return User.objects.filter(
-            following__user=self.request.user
-        ).annotate(recipes_count=Count('recipes'))
-
-    def create(self, request, user_id=None):
+    @action(detail=True,
+            methods=['get', 'post', 'delete'],
+            permission_classes=[IsAuthenticated]
+            )
+    def subscribe(self, request, pk=None):
         """
-        Метод для создания подписки текущего пользователя на автора,
-        id которого передается в url запросе.
-        Args:
-            request (WSGIRequest): Объект запроса.
-            id (int):
-                id пользователя, на которого желает подписаться
-                или отписаться запрашивающий пользователь.
-
-        Returns:
-            return: Перенаправляет на страницу подписки, при успешной подписке.
+        Экшен для получения данных об авторах, находящихся в подписках у
+        актуального пользователя, а так же их подписках.
+        Только GET запросы.
         """
-        current_user_id = request.user.id
-        author = get_object_or_404(User, id=user_id)
+        current_user = request.user
+        author = get_object_or_404(User, id=pk)
         if self.request.user == author:
             return Response(f'{"Проверьте выбранного автора. "}'
-                            f'{"Подписка на самого себя невозможна."}',
+                            f'{"Подписка на свой аккаунт невозможна."}',
                             status=status.HTTP_400_BAD_REQUEST)
-        if Subscription.objects.filter(
-            user_id=current_user_id,
-            author_id=user_id
-        ).exists():
-            return Response('Подписка на данного автора уже оформлена.',
-                            status=status.HTTP_400_BAD_REQUEST)
-        Subscription.objects.create(
-            user_id=current_user_id,
-            author_id=user_id)
+
+        method = request.method
+        return_obj = 'redirect'
+        return_v = check_existance_create_delete(Subscription, method,
+                                                 return_obj,
+                                                 SubscriptionsSerializer,
+                                                 author,
+                                                 user=current_user,
+                                                 author=author)
+        if return_v != 'redirect':
+            return return_v
         return redirect(
-            'api:subscribe-detail',
-            user_id=current_user_id,
-            pk=user_id
+            'api:user-detail',
+            pk=author.id
         )
-
-    def delete(self, request, user_id=None):
-        """
-        Метод для удаления подписки текущего пользователя на автора,
-        id которого передается в url запросе.
-        Args:
-            request (WSGIRequest): Объект запроса.
-            id (int):
-                id пользователя, на которого желает отписаться
-                текущий пользователь.
-
-        Returns:
-            Responce: Статус подтверждающий действие.
-        """
-        current_user_id = request.user.id
-        author = get_object_or_404(User, id=user_id)
-        if not Subscription.objects.filter(
-            user_id=current_user_id,
-            author_id=author.id
-        ).exists():
-            return Response('Подписки на данного автора не существует.',
-                            status=status.HTTP_400_BAD_REQUEST)
-        Subscription.objects.filter(user_id=current_user_id,
-                                    author_id=author.id).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RecipeViewSet(mixins.CreateModelMixin,
@@ -232,36 +206,15 @@ class RecipeViewSet(mixins.CreateModelMixin,
         Returns:
             Responce: Статус подтверждающий/отклоняющий действие.
         """
-        current_user_id = request.user.id
+        current_user = request.user
         recipe = get_object_or_404(Recipe, id=pk)
+        method = request.method
+        return_obj = 'response'
 
-        if request.method == 'POST':
-            if Favorit.objects.filter(
-                favoriter_id=current_user_id,
-                recipe_id=recipe.id
-            ).exists():
-                return Response('Данный рецепт автора уже в избранном.',
-                                status=status.HTTP_400_BAD_REQUEST)
-            Favorit.objects.create(
-                favoriter_id=current_user_id,
-                recipe_id=recipe.id
-            )
-            return Response(RecipesShortSerializer(recipe).data)
-
-        if request.method == 'DELETE':
-            if not Favorit.objects.filter(
-                favoriter_id=current_user_id,
-                recipe_id=recipe.id
-            ).exists():
-                return Response('Данного рецепта нет в избранном.',
-                                status=status.HTTP_400_BAD_REQUEST)
-            Favorit.objects.filter(
-                favoriter_id=current_user_id,
-                recipe_id=recipe.id
-            ).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        return self.http_method_not_allowed(request)
+        return check_existance_create_delete(Favorit, method, return_obj,
+                                             RecipesShortSerializer, recipe,
+                                             favoriter=current_user,
+                                             recipe=recipe)
 
     @action(detail=True,
             methods=['post', 'delete'])
@@ -277,35 +230,16 @@ class RecipeViewSet(mixins.CreateModelMixin,
         Returns:
             Responce: Статус подтверждающий/отклоняющий действие.
         """
-        current_user_id = request.user.id
+        current_user = request.user
         recipe = get_object_or_404(Recipe, id=pk)
+        method = request.method
+        return_obj = 'response'
 
-        if request.method == 'POST':
-            if ShoppingCartUser.objects.filter(
-                owner_id=current_user_id,
-                recipe_id=recipe.id
-            ).exists():
-                return Response('Рецепт уже в корзине.',
-                                status=status.HTTP_400_BAD_REQUEST)
-            ShoppingCartUser.objects.create(
-                owner_id=current_user_id,
-                recipe_id=recipe.id)
-            return Response(RecipesShortSerializer(recipe).data)
-
-        if request.method == 'DELETE':
-            if not ShoppingCartUser.objects.filter(
-                owner_id=current_user_id,
-                recipe_id=recipe.id
-            ).exists():
-                return Response('Данного рецепта нет в корзине.',
-                                status=status.HTTP_400_BAD_REQUEST)
-            ShoppingCartUser.objects.filter(
-                owner_id=current_user_id,
-                recipe_id=recipe.id
-            ).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        return self.http_method_not_allowed(request)
+        return check_existance_create_delete(ShoppingCartUser, method,
+                                             return_obj,
+                                             RecipesShortSerializer, recipe,
+                                             owner=current_user,
+                                             recipe=recipe)
 
     @action(detail=False,
             methods=['get'],
@@ -336,7 +270,7 @@ class RecipeViewSet(mixins.CreateModelMixin,
         filename = f'{user.username}_shopping_list.txt'
         shopping_list = [
             f'Список покупок для:\n\n{user.first_name}\n'
-            f'Дата: {dt.now().strftime(DATE_TIME_FORMAT)}\n'
+            f'Дата: {timezone.now().strftime(DATE_TIME_FORMAT)}\n'
         ]
 
         ingredients = Ingredient.objects.filter(
@@ -377,17 +311,18 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [IsAdminOrReadOnly]
     pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Работет с игридиентами.
-    Изменение и создание ингридиентов разрешено только админам.
+    Работет с ингредиентами.
+    Изменение и создание ингредиентов разрешено только админам.
     """
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     search_fields = ('^name',)
+    # search_param = ('name')
+    # filterset_class = IngredientFilter
