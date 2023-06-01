@@ -1,17 +1,11 @@
-import base64
-
 from django.contrib.auth import get_user_model
-from django.core.files.base import ContentFile
 from django.db.models import F, QuerySet
-from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from foodgram.settings import DEFAULT_RECIPES_LIMIT
-from recipe.models import (Favorit, Ingredient, Recipe, RecipeIngredient,
-                           RecipeTag, ShoppingCartUser, Tag)
+from recipe.models import (Favorit, Ingredient, Recipe, ShoppingCartUser, Tag)
 from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
 from user.models import Subscription
-from rest_framework.validators import UniqueTogetherValidator
 
 User = get_user_model()
 
@@ -286,8 +280,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         Проверка данных, введенных в полях ingredients, tags.
         Обработка изображения для сохранения в БД.
         """
-        ingredients = data.get('ingredients')
-        tags = data.get('tags')
+        ingredients = self.initial_data.get('ingredients')
+        tags = self.initial_data.get('tags')
         if ingredients is None:
             raise serializers.ValidationError({
                 'ingredients': 'Поле ingredients обязательно.'
@@ -314,6 +308,9 @@ class RecipeSerializer(serializers.ModelSerializer):
                         'Проверьте список ингредиентов на повторение.'
                     ]
                 })
+            db_ings = Ingredient.objects.filter(id=ingredient['id'])
+            if not db_ings:
+                raise serializers.ValidationError('Такого ингредиента нет.')
             ingr_id_list.append(ingredient['id'])
 
         if tags is None:
@@ -324,69 +321,25 @@ class RecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'tags': 'Добавьте хотя бы 1 тэг.'
             })
-
-        image = data.get('image')
-        if isinstance(image, str) and image.startswith('data:image'):
-            format, imgstr = image.split(';base64,')
-            ext = format.split('/')[-1]
-            image = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-            data['image'] = image
-
         return data
 
     def create(self, validated_data):
-        ingredients = validated_data.pop('ingredients')
-        tags = validated_data.pop('tags')
+        ingredients = self.initial_data.pop('ingredients')
+        tags = self.initial_data.pop('tags')
         request = self.context['request']
         recipe = Recipe.objects.create(**validated_data, author=request.user)
-        for ingredient in ingredients:
-            current_ingredient = get_object_or_404(Ingredient,
-                                                   id=ingredient['id']
-                                                   )
-            RecipeIngredient.objects.create(
-                ingredient=current_ingredient,
-                amount=ingredient['amount'],
-                recipe=recipe)
-        for tag in tags:
-            current_tag = get_object_or_404(Tag,
-                                            id=tag
-                                            )
-            RecipeTag.objects.create(
-                tag=current_tag,
-                recipe=recipe)
+        recipe.load_ingredients(ingredients)
+        recipe.load_tags(tags)
         return recipe
 
     def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get(
-            'cooking_time',
-            instance.cooking_time)
-        instance.image = validated_data.get('image', instance.image)
-
-        if 'ingredients' in validated_data:
-            ingredients_data = validated_data.pop('ingredients')
-            instance.ingredients.clear()
-            lst_ingrd = [
-                RecipeIngredient(
-                    ingredient=get_object_or_404(
-                        Ingredient,
-                        id=ingredient['id']
-                    ),
-                    amount=ingredient['amount'],
-                    recipe=instance,
-                )
-                for ingredient in ingredients_data
-            ]
-            RecipeIngredient.objects.bulk_create(lst_ingrd)
-
-        if 'tags' in validated_data:
-            tags_data = validated_data.pop('tags')
-            lst_tag = []
-            for tag in tags_data:
-                current_tag = get_object_or_404(Tag, id=tag)
-                lst_tag.append(current_tag)
-            instance.tags.set(lst_tag)
+        super().update(instance, validated_data)
+        ingredients = self.initial_data.pop('ingredients')
+        instance.ingredients.clear()
+        instance.load_ingredients(ingredients)
+        tags = self.initial_data.pop('tags')
+        instance.tags.clear()
+        instance.load_tags(tags)
 
         instance.save()
         return instance
