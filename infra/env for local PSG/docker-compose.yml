@@ -10,7 +10,8 @@ services:
     env_file:
       - .env
   backend:
-    image: gatitka/foodgram_backend:latest
+    build:
+      context: ../backend
     restart: always
     volumes:
       - static_value:/app/static/
@@ -20,7 +21,9 @@ services:
     env_file:
       - .env
   frontend:
-    image: gatitka/foodgram_frontend:latest
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
