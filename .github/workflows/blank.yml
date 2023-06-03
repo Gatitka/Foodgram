@@ -77,7 +77,6 @@ deploy:
             sudo systemctl stop nginx
             sudo docker-compose up -d
             sudo docker compose exec yamdb_final-web-1 python manage.py collectstatics --no-input
-            # вроде не надо sudo docker cp redoc.yaml yamdb_final-web-1:/app/static/
 
   send_message:
     runs-on: ubuntu-latest
