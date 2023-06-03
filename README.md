@@ -9,3 +9,7 @@ python manage.py load_ingridients_data
 ```
 npm run start
 ```
+для установки psycopg2 в контейнерах добавить в бокерфайл бэкэнда инструкцию, но можно и без него, установив лишь psycopg2-binary:
+```
+RUN apt-get install libpq-dev python-dev
+```

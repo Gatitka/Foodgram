@@ -4,19 +4,13 @@ on: [push]
 
 jobs:
   tests:
-    # «Раннер» — создание изолированного окружения с последней версией Ubuntu
     runs-on: ubuntu-latest
 
     steps:
-    # Запуск actions checkout — готового скрипта
-    # для клонирования репозитория
     - uses: actions/checkout@v2
     - name: Set up Python
-      # Запуск actions setup-python — готового скрипта
-      # для развёртывания окружения Python
       uses: actions/setup-python@v2
       with:
-        # Выбор версии Python
         python-version: 3.7
 
     - name: Install dependencies
@@ -32,3 +26,66 @@ jobs:
       run: |
         # запуск проверки проекта по flake8
         python -m flake8
+
+  build_and_push_to_docker_hub:
+      name: Push Docker image to Docker Hub
+      runs-on: ubuntu-latest
+      needs: tests
+      if: github.ref == 'refs/heads/master'
+      steps:
+        - name: Check out the repo
+          uses: actions/checkout@v2
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v1
+        - name: Login to Docker
+          uses: docker/login-action@v1
+          with:
+            username: ${{ secrets.USERNAME_DOCKERHUB }}
+            password: ${{ secrets.PASSWORD_DOCKERHUB }}
+        - name: Push to Docker Hub
+          uses: docker/build-push-action@v4
+          with:
+            context: .
+            file: foodgram/Dockerfile
+            tags: ${{ secrets.USERNAME_DOCKERHUB }}/foodgram_backend:latest
+            push: true
+
+deploy:
+    runs-on: ubuntu-latest
+    needs: build_and_push_to_docker_hub
+    steps:
+      - name: executing remote ssh commands to deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd yamdb_final
+            sudo docker-compose stop
+            sudo docker-compose rm backend
+            sudo docker image rm gatitka/foodgram_backend:latest -f
+            sudo docker volume rm gatitka_static_value -f
+            touch .env
+            echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
+            echo DB_NAME=${{ secrets.DB_NAME }} >> .env
+            echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
+            echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
+            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+            echo DB_PORT=${{ secrets.DB_PORT }} >> .env
+            echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
+            sudo systemctl stop nginx
+            sudo docker-compose up -d
+            sudo docker compose exec yamdb_final-web-1 python manage.py collectstatics --no-input
+            # вроде не надо sudo docker cp redoc.yaml yamdb_final-web-1:/app/static/
+
+  send_message:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+    - name: send message
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_TO }}
+        token: ${{ secrets.TELEGRAM_TOKEN }}
+        message: ${{ github.workflow }} успешно выполнен!

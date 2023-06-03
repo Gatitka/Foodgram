@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
 from django.db.models import F, QuerySet
 from drf_extra_fields.fields import Base64ImageField
-from foodgram.settings import DEFAULT_RECIPES_LIMIT
-from recipe.models import (Favorit, Ingredient, Recipe, ShoppingCartUser, Tag)
 from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
+
+from foodgram.settings import DEFAULT_RECIPES_LIMIT
+from recipe.models import Favorit, Ingredient, Recipe, ShoppingCartUser, Tag
 from user.models import Subscription
 
 User = get_user_model()
