@@ -78,6 +78,10 @@ jobs:
             sudo systemctl stop nginx
             sudo docker-compose up -d
             sudo docker compose exec backend python manage.py collectstatic --no-input
+            sudo docker compose exec backend apt-get update
+            sudo docker compose exec backend apt install sudo
+            sudo docker compose exec backend sudo apt update
+            sudo docker compose exec backend apt-get install nano -y
 
   send_message:
     runs-on: ubuntu-latest
