@@ -66,6 +66,7 @@ jobs:
             sudo docker-compose rm backend
             sudo docker image rm gatitka/foodgram_backend:latest -f
             sudo docker volume rm gatitka_static_value -f
+            rm .env
             touch .env
             echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
             echo POSTGRES_DB=${{ secrets.POSTGRES_DB }} >> .env
