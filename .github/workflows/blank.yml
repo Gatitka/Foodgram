@@ -82,8 +82,12 @@ jobs:
             sudo docker compose exec backend apt install sudo
             sudo docker compose exec backend sudo apt update
             sudo docker compose exec backend apt-get install nano -y
-            sudo docker compose exec backend cp -r data/ /app/static/data/
-            sudo docker compose exec backend cp -r docs/ /app/static/docs/
+            sudo docker compose exec backend cp -r data/ /app/static/
+            sudo docker compose exec backend cp -r docs/ /app/static/
+            sudo docker compose exec nginx apt-get update
+            sudo docker compose exec nginx apt install sudo
+            sudo docker compose exec nginx sudo apt update
+            sudo docker compose exec nginx apt-get install nano -y
 
   send_message:
     runs-on: ubuntu-latest

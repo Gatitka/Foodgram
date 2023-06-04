@@ -32,6 +32,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
+      - ../frontend/build:/var/html/static/
       - ../docs/:/usr/share/nginx/html/api/docs/
       - ../data:/var/html/static/data/
       - static_value:/var/html/static/

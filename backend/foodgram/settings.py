@@ -10,7 +10,7 @@ load_dotenv(os.path.join(os.path.dirname(BASE_DIR), '.env'), verbose=True)   # F
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = os.getenv('HOST', default='*')
 # ALLOWED_HOSTS = [
