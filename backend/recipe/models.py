@@ -3,7 +3,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.shortcuts import get_object_or_404
 
-from .validators import recipe_has_ingredients, recipe_has_tags
+from recipe.validators import recipe_has_ingredients, recipe_has_tags
 
 User = get_user_model()
 

@@ -1,7 +1,6 @@
 from django.core.exceptions import ValidationError
-from django.shortcuts import get_object_or_404
 
-from .models import Ingredient, Tag
+# from .models import Tag, Ingredient
 
 
 def recipe_has_ingredients(value):
@@ -30,8 +29,9 @@ def recipe_has_ingredients(value):
                         'Проверьте список ингредиентов на повторение.'
                     ]
                 })
-            db_ings = get_object_or_404(Ingredient, id=ingredient['id'])
-            ingr_id_list.append(db_ings.id)
+            ingr_id_list.append(ingredient['id'])
+            # db_ings = get_object_or_404(Ingredient, id=ingredient['id'])
+            # ingr_id_list.append(db_ings.id)
         return value
 
     raise ValidationError({
@@ -46,12 +46,12 @@ def recipe_has_tags(value):
             raise ValidationError({
                 'tags': 'Добавьте хотя бы 1 тэг.'
             })
-        for tag in tags:
-            if Tag.objects.filter(id=tag).exists():
-                continue
-            raise ValidationError({
-                'tags': 'Такого тэга не существует.'
-            })
+        # for tag in tags:
+        #     if Tag.objects.filter(id=tag).exists():
+        #         continue
+        #     raise ValidationError({
+        #         'tags': 'Такого тэга не существует.'
+        #     })
         return value
 
     raise ValidationError({
