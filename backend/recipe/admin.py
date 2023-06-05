@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from .forms import RecipeForm
 from .models import (Favorit, Ingredient, Recipe, RecipeIngredient, RecipeTag,
                      ShoppingCartUser, Tag)
 
@@ -29,6 +30,7 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('name', 'author', 'tags')
     search_fields = ('name', 'author', 'tags')
     inlines = (RecipeIngredientAdmin, RecipeTagAdmin,)
+    form = RecipeForm
 
     def in_favorits(self, obj):
         return Favorit.objects.filter(recipe=obj).count()
