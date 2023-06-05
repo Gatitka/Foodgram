@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.shortcuts import get_object_or_404
-from django.core.validators import MinValueValidator
+
+from .validators import recipe_has_ingredients, recipe_has_tags
 
 User = get_user_model()
 
@@ -90,13 +92,14 @@ class Recipe(models.Model):
         verbose_name='Ингредиенты',
         related_name='ingredient',
         help_text='Добавьте ингредиенты рецепта.',
-        blank=False
+        validators=[recipe_has_ingredients],
     )
     tags = models.ManyToManyField(
         Tag,
         through='RecipeTag',
         verbose_name='Тэг',
-        help_text='Выберите тэги для рецепта.'
+        help_text='Выберите тэги для рецепта.',
+        validators=[recipe_has_tags]
     )
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True
