@@ -61,7 +61,7 @@ jobs:
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd foodgram-project-react
+            cd foodgram-project-react/infra
             sudo docker-compose stop
             sudo docker-compose rm backend
             sudo docker image rm gatitka/foodgram_backend:latest -f
@@ -82,8 +82,6 @@ jobs:
             sudo docker compose exec backend apt install sudo
             sudo docker compose exec backend sudo apt update
             sudo docker compose exec backend apt-get install nano -y
-            sudo docker compose exec backend cp -r data/ /app/static/
-            sudo docker compose exec backend cp -r docs/ /app/static/
             sudo docker compose exec nginx apt-get update
             sudo docker compose exec nginx apt install sudo
             sudo docker compose exec nginx sudo apt update

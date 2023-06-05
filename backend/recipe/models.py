@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.shortcuts import get_object_or_404
+from django.core.validators import MinValueValidator
 
 User = get_user_model()
 
@@ -102,6 +103,7 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время готовки',
+        validators=[MinValueValidator(1)],
         help_text='Оцените время, потраченное на приготовление рецепта.'
     )
 
