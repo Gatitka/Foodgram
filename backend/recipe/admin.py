@@ -1,8 +1,10 @@
 from django.contrib import admin
 
-from .forms import RecipeForm
 from .models import (Favorit, Ingredient, Recipe, RecipeIngredient, RecipeTag,
                      ShoppingCartUser, Tag)
+
+admin.site.register(Tag)
+admin.site.register(ShoppingCartUser)
 
 
 class RecipeIngredientAdmin(admin.TabularInline):
@@ -13,16 +15,6 @@ class RecipeTagAdmin(admin.TabularInline):
     model = RecipeTag
 
 
-admin.site.register(Tag)
-admin.site.register(ShoppingCartUser)
-
-
-@admin.register(Favorit)
-class FavoritAdmin(admin.ModelAdmin):
-    """Настройки отображения данных таблицы Recipe."""
-    list_display = ('favoriter_id', 'favoriter', 'recipe_id', 'recipe')
-
-
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
     """Настройки отображения данных таблицы Recipe."""
@@ -30,7 +22,6 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('name', 'author', 'tags')
     search_fields = ('name', 'author', 'tags')
     inlines = (RecipeIngredientAdmin, RecipeTagAdmin,)
-    form = RecipeForm
 
     def in_favorits(self, obj):
         return Favorit.objects.filter(recipe=obj).count()

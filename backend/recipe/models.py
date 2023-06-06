@@ -3,8 +3,6 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.shortcuts import get_object_or_404
 
-from recipe.validators import recipe_has_ingredients, recipe_has_tags
-
 User = get_user_model()
 
 
@@ -41,6 +39,11 @@ class Tag(models.Model):
     def __str__(self):
         return self.slug
 
+    def clean(self) -> None:
+        self.name = self.name.strip().lower()
+        self.slug = self.slug.strip().lower()
+        return super().clean()
+
 
 class Ingredient(models.Model):
     """ Модель для описания ингредиентов."""
@@ -62,6 +65,11 @@ class Ingredient(models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self) -> None:
+        self.name = self.name.lower()
+        self.measurement_unit = self.measurement_unit.lower()
+        super().clean()
 
 
 class Recipe(models.Model):
@@ -91,15 +99,13 @@ class Recipe(models.Model):
         through='RecipeIngredient',
         verbose_name='Ингредиенты',
         related_name='ingredient',
-        help_text='Добавьте ингредиенты рецепта.',
-        validators=[recipe_has_ingredients],
+        help_text='Добавьте ингредиенты рецепта.'
     )
     tags = models.ManyToManyField(
         Tag,
         through='RecipeTag',
         verbose_name='Тэг',
-        help_text='Выберите тэги для рецепта.',
-        validators=[recipe_has_tags]
+        help_text='Выберите тэги для рецепта.'
     )
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True
