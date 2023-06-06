@@ -9,10 +9,12 @@ admin.site.register(ShoppingCartUser)
 
 class RecipeIngredientAdmin(admin.TabularInline):
     model = RecipeIngredient
+    min_num = 1
 
 
 class RecipeTagAdmin(admin.TabularInline):
     model = RecipeTag
+    min_num = 1
 
 
 @admin.register(Recipe)

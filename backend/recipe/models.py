@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator, MinValueValidator
 from django.db import models
 from django.shortcuts import get_object_or_404
 
@@ -16,6 +17,7 @@ class Tag(models.Model):
     )
     color = models.CharField(
         max_length=7,
+        validators=[MinLengthValidator(7)],
         verbose_name='HEX',
         unique=True
     )
@@ -69,6 +71,8 @@ class Ingredient(models.Model):
     def clean(self) -> None:
         self.name = self.name.lower()
         self.measurement_unit = self.measurement_unit.lower()
+        if Ingredient.objects.filter(name=self.name).exists():
+            raise ValidationError('Ингредиент с таким названием уже есть')
         super().clean()
 
 
@@ -157,7 +161,8 @@ class RecipeIngredient(models.Model):
         related_name='recipe',
     )
     amount = models.PositiveSmallIntegerField(
-        verbose_name='Кол-во'
+        verbose_name='Кол-во',
+        validators=[MinValueValidator(1)],
     )
 
     class Meta:
