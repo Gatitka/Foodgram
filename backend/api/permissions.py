@@ -11,6 +11,4 @@ class IsAuthorAdminOrReadOnly(IsAuthenticatedOrReadOnly):
     def has_object_permission(self, request, view, obj):
         if view.action == 'retrieve' or obj.author == request.user:
             return True
-        if request.user.is_admin():
-            return True
-        return False
+        return request.user.is_admin()

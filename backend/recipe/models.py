@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import MinLengthValidator, MinValueValidator
 from django.db import models
-from django.shortcuts import get_object_or_404
 
 User = get_user_model()
 
@@ -31,12 +30,6 @@ class Tag(models.Model):
         verbose_name = 'тэг'
         verbose_name_plural = 'тэги'
         ordering = ('name',)
-        constraints = [
-            models.UniqueConstraint(
-                fields=['name', 'color', 'slug'],
-                name='unique_name_color_slug'
-            )
-        ]
 
     def __str__(self):
         return self.slug
@@ -131,19 +124,13 @@ class Recipe(models.Model):
     def load_ingredients(self, ingredients):
         lst_ingrd = [
             RecipeIngredient(
-                ingredient=get_object_or_404(Ingredient, id=ingredient['id']),
+                ingredient_id=ingredient['id'],
                 amount=ingredient['amount'],
                 recipe=self,
             )
             for ingredient in ingredients
         ]
         RecipeIngredient.objects.bulk_create(lst_ingrd)
-
-    def load_tags(self, tags):
-        for tag in tags:
-            RecipeTag.objects.create(
-                tag=get_object_or_404(Tag, id=tag),
-                recipe=self)
 
 
 class RecipeIngredient(models.Model):
@@ -158,7 +145,7 @@ class RecipeIngredient(models.Model):
         Ingredient,
         on_delete=models.PROTECT,
         verbose_name='Ингредиент',
-        related_name='recipe',
+        related_name='recipe'
     )
     amount = models.PositiveSmallIntegerField(
         verbose_name='Кол-во',

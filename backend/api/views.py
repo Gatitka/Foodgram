@@ -9,39 +9,20 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from api.filters import IngredientFilter, RecipeFilter
+from api.permissions import IsAuthorAdminOrReadOnly
+from api.serializers import (IngredientSerializer, PasswordSerializer,
+                             RecipeSerializer, RecipesShortSerializer,
+                             SignUpSerializer, SubscriptionsSerializer,
+                             TagSerializer, UserSerializer)
+from api.utils import check_existance_create_delete
 from recipe.models import Favorit, Ingredient, Recipe, ShoppingCartUser, Tag
 from user.models import Subscription
-
-from .filters import IngredientFilter, RecipeFilter
-from .permissions import IsAuthorAdminOrReadOnly
-from .serializers import (IngredientSerializer, PasswordSerializer,
-                          RecipeSerializer, RecipesShortSerializer,
-                          SignUpSerializer, SubscriptionsSerializer,
-                          TagSerializer, UserSerializer)
 
 User = get_user_model()
 
 
 DATE_TIME_FORMAT = '%d/%m/%Y %H:%M'
-
-
-def check_existance_create_delete(model, method, response,
-                                  serializer=None, instance=None,
-                                  **kwargs):
-    if method == 'POST':
-        if model.objects.filter(**kwargs).exists():
-            return Response('Данная запись уже существует.',
-                            status=status.HTTP_400_BAD_REQUEST)
-        model.objects.create(**kwargs)
-        if response == 'response':
-            return Response(serializer(instance).data)
-        return 'redirect'
-
-    if not model.objects.filter(**kwargs).exists():
-        return Response('Такой записи нет, удаление невозможно.',
-                        status=status.HTTP_400_BAD_REQUEST)
-    model.objects.filter(**kwargs).delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MyUserViewSet(mixins.CreateModelMixin,
