@@ -1,7 +1,6 @@
 from django_filters import FilterSet, NumberFilter, filters
-from rest_framework import filters as f
-
 from recipe.models import Recipe
+from rest_framework import filters as f
 
 
 class CharFilter(filters.BaseInFilter, filters.CharFilter):
