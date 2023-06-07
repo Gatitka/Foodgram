@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-load_dotenv(os.path.join(os.path.dirname(BASE_DIR), 'infra/env for local PSG/.env'), verbose=True)   # FOR LOCAL USAGE
-# load_dotenv(os.path.join(os.path.dirname(BASE_DIR), '.env'), verbose=True)   # FOR SERVER USAGE
+# load_dotenv(os.path.join(os.path.dirname(BASE_DIR), 'infra/env for local PSG/.env'), verbose=True)   # FOR LOCAL USAGE
+load_dotenv(os.path.join(os.path.dirname(BASE_DIR), '.env'), verbose=True)   # FOR SERVER USAGE
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
