@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY backend/requirements.txt .
 RUN python -m pip install --upgrade pip
-# RUN sudo apt-get install libpq-dev
 
 RUN pip3 install -r /app/requirements.txt --no-cache-dir
 

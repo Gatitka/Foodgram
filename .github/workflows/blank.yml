@@ -62,7 +62,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd foodgram-project-react/infra
-            sudo docker-compose stop
+            sudo docker stop $(sudo docker ps -a -q)
             sudo docker-compose rm backend
             sudo docker image rm gatitka/foodgram_backend:latest -f
             sudo docker volume rm gatitka_static_value -f
@@ -75,7 +75,6 @@ jobs:
             echo DB_HOST=${{ secrets.DB_HOST }} >> .env
             echo DB_PORT=${{ secrets.DB_PORT }} >> .env
             echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
-            sudo systemctl stop nginx
             sudo docker-compose up -d
             sudo docker compose exec backend python manage.py collectstatic --no-input
             sudo docker compose exec backend apt-get update

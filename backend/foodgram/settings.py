@@ -4,9 +4,7 @@ from dotenv import load_dotenv
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
-# load_dotenv(os.path.join(os.path.dirname(BASE_DIR), 'infra/env for local PSG/.env'), verbose=True)   # FOR LOCAL USAGE
-load_dotenv(os.path.join(os.path.dirname(BASE_DIR), '.env'), verbose=True)   # FOR SERVER USAGE
+load_dotenv(os.path.join(os.path.dirname(BASE_DIR), '.env'), verbose=True)
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
@@ -68,14 +66,12 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        # 'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3'),
-        # 'NAME': os.environ.get('POSTGRES_DB', os.path.join(BASE_DIR, 'db.sqlite3')),
-        # 'USER': os.environ.get('POSTGRES_USER'),
-        # 'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        # 'HOST': os.environ.get('DB_HOST'),
-        # 'PORT': os.environ.get('DB_PORT'),
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.environ.get('POSTGRES_DB', os.path.join(BASE_DIR, 'db.sqlite3')),
+        'USER': os.environ.get('POSTGRES_USER'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
     }
 }
 
@@ -136,6 +132,6 @@ DJOSER = {
 
 PASSWORD_RESET_TIMEOUT = 60 * 60  # 1 hour
 
-DEFAULT_RECIPES_LIMIT = 3
+DEFAULT_RECIPES_LIMIT = 2
 
 DEFAULT_PAGE_SIZE = 6

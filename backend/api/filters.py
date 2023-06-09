@@ -1,6 +1,7 @@
 from django_filters import FilterSet, NumberFilter, filters
-from recipe.models import Recipe
 from rest_framework import filters as f
+
+from recipe.models import Recipe
 
 
 class CharFilter(filters.BaseInFilter, filters.CharFilter):
@@ -28,12 +29,21 @@ class RecipeFilter(FilterSet):
                                        method='filter_in_shopping_cart')
 
     def filter_favorited(self, queryset, name, value):
-
+        """
+        Фильтр используется для отображения списка избранных рецептов в разделе
+        "Избранное". Доступен только для авторизованных пользователей.
+        Фильтрует основной QuerySet, описаный в RecipeViewSet.
+        """
         if self.request.user.is_authenticated and value == 1:
             return queryset.filter(favorited__favoriter=self.request.user)
         return queryset
 
     def filter_in_shopping_cart(self, queryset, name, value):
+        """
+        Фильтр используется для отображения списка рецептов, находящихся в
+        разделе "Список покупок". Доступен только для авторизованных
+        пользователей. Фильтрует основной QuerySet, описаный в RecipeViewSet.
+        """
         if self.request.user.is_authenticated and value == 1:
             return queryset.filter(in_shopping_cart__owner=self.request.user)
         return queryset

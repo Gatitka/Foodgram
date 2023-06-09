@@ -124,8 +124,8 @@ class Recipe(models.Model):
     def load_ingredients(self, ingredients):
         lst_ingrd = [
             RecipeIngredient(
-                ingredient_id=ingredient['id'],
-                amount=ingredient['amount'],
+                ingredient=ingredient["id"],
+                amount=ingredient["amount"],
                 recipe=self,
             )
             for ingredient in ingredients
@@ -149,7 +149,7 @@ class RecipeIngredient(models.Model):
     )
     amount = models.PositiveSmallIntegerField(
         verbose_name='Кол-во',
-        validators=[MinValueValidator(1)],
+        validators=[MinValueValidator(1)]
     )
 
     class Meta:
