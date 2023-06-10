@@ -16,7 +16,6 @@ services:
       - ../frontend/build:/app/static/
       - static_value:/app/static/
       - media_value:/app/media/
-      - ../media:/app/media/
     depends_on:
       - db
     env_file:
