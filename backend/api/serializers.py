@@ -327,6 +327,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         """
         Проверка данных, введенных в полях ingredients, tags.
         Обработка изображения для сохранения в БД.
+        Проверка колличества проведена в сериализаторе
+        IngredientAmountSerializer.
         Args:
             data (dict): непроверенные данные из запроса.
         Returns:
@@ -337,8 +339,21 @@ class RecipeSerializer(serializers.ModelSerializer):
         if len(ingredients) == 0:
             raise serializers.ValidationError({
                 'ingredients':
-                    'Выберите хотя бы 1 ингридиент.'
+                    'Выберите хотя бы 1 ингредиент.'
             })
+        ingr_list = []
+        for ingredient in ingredients:
+            if ingredient['id'] in ingr_list:
+                raise serializers.ValidationError({
+                    "ingredients": [
+                        {
+                            "id": [
+                                "Проверьте ингредиенты на повторение."
+                            ]
+                        },
+                    ]
+                })
+            ingr_list.append(ingredient['id'])
 
         if len(tags) == 0:
             raise serializers.ValidationError({
