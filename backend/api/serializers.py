@@ -296,9 +296,9 @@ class IngredientAmountSerializer(serializers.Serializer):
     amount = serializers.IntegerField()
 
     def validate_amount(self, value: int) -> int:
-        if value == 0:
+        if value <= 0:
             raise serializers.ValidationError(
-                "Колличество ингредиента не может быть равно 0."
+                "Колличество ингредиента должно быть больше 0."
             )
         return value
 
