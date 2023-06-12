@@ -58,8 +58,7 @@ class MyUserViewSet(mixins.CreateModelMixin,
     def user_profile(self, request):
         """
         Экшен для обработки страницы актуального пользователя
-        api/users/me.
-        Только GET, PATCH запросы
+        api/users/me. Только GET, PATCH запросы
         """
         self.get_object = self.get_instance
         if request.method == "GET":
